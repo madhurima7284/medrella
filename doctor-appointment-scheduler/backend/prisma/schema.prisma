@@ -1,0 +1,137 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REJECTED
+  COMPLETED
+}
+
+model User {
+  id           String          @id @default(uuid())
+  fullName     String
+  email        String          @unique
+  passwordHash String
+  role         Role            @default(PATIENT)
+  phoneNumber  String?
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  patient      PatientProfile?
+  doctor       DoctorProfile?
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model PatientProfile {
+  id               String        @id @default(uuid())
+  userId           String        @unique
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateOfBirth      String?
+  gender           String?
+  address          String?
+  emergencyContact String?
+  appointments     Appointment[]
+
+  @@map("patient_profiles")
+}
+
+model Specialty {
+  id          String          @id @default(uuid())
+  name        String          @unique
+  description String?
+  iconName    String?         @default("Stethoscope")
+  doctors     DoctorProfile[]
+
+  @@map("specialties")
+}
+
+model DoctorProfile {
+  id              String         @id @default(uuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialtyId     String
+  specialty       Specialty      @relation(fields: [specialtyId], references: [id])
+  qualifications  String
+  experienceYears Int            @default(0)
+  consultationFee Float          @default(0.0)
+  city            String         @default("Tirupati")
+  state           String         @default("Andhra Pradesh")
+  bio             String
+  clinicName      String
+  clinicAddress   String
+  profileImageUrl String?
+  approvalStatus  ApprovalStatus @default(PENDING)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  availabilities  Availability[]
+  appointments    Appointment[]
+
+  @@map("doctor_profiles")
+}
+
+model Availability {
+  id                  String        @id @default(uuid())
+  doctorId            String
+  doctor              DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek           Int           // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime           String        // HH:mm (e.g. "09:00")
+  endTime             String        // HH:mm (e.g. "17:00")
+  slotDurationMinutes Int           @default(30)
+  isActive            Boolean       @default(true)
+
+  @@index([doctorId, dayOfWeek])
+  @@map("availabilities")
+}
+
+model Appointment {
+  id                 String            @id @default(uuid())
+  patientId          String
+  patient            PatientProfile    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId           String
+  doctor             DoctorProfile     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  startAt            DateTime
+  endAt              DateTime
+  reasonForVisit     String?
+  status             AppointmentStatus @default(PENDING)
+  cancellationReason String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([doctorId, startAt, endAt])
+  @@index([patientId, startAt])
+  @@map("appointments")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}

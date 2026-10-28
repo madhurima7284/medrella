@@ -1,0 +1,6 @@
+{
+  "name": "Medrella Doctor Appointment Scheduler",
+  "description": "Production-ready healthcare appointment scheduling platform connecting patients and verified doctors with real-time slot booking, doctor availability management, and role-based administration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
